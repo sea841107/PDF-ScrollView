@@ -36,4 +36,10 @@ public class MyUGUIEnhanceItem : EnhanceItem
         colorGray.a = 0.5f;
         rawImage.color = isCenter ? Color.white : colorGray;
     }
+
+    public override void ClearImage()
+    {
+        rawImage = GetComponent<RawImage>();
+        rawImage.texture = null;
+    }
 }

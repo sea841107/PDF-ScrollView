@@ -87,4 +87,8 @@ public class EnhanceItem : MonoBehaviour
     public virtual void SetSelectState(bool isCenter)
     {
     }
+
+    public virtual void ClearImage()
+    {
+    }
 }

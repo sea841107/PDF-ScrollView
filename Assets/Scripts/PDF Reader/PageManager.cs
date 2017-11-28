@@ -2,23 +2,36 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ChangePage : MonoBehaviour
+public class PageManager : MonoBehaviour
 {
+    public Text page;
     public InputField input;
     public OpenPDF openPDF;
 
     void Start()
     {
         openPDF = OpenPDF.instance;
+        OpenPDF.OnPageChanged += OnChange;
     }
 
-    public void Change()
+    void OnDestroy()
+    {
+        OpenPDF.OnPageChanged -= OnChange;
+    }
+
+    void OnChange(int nowPage)
+    {
+        page.text = "Page." + nowPage.ToString();
+    }
+
+    public void ChangePage()
     {
         int index = Convert.ToInt32(input.text);
         if (openPDF.isOpen && index <= openPDF.pageCount && index > 0)
         {
             openPDF.ConvertToImage(index - 1);
             openPDF.nowPage = index;
+            page.text = "Page." + openPDF.nowPage.ToString();
         }
     }
 }

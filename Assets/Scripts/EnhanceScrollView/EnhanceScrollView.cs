@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -148,6 +149,7 @@ public class EnhanceScrollView : MonoBehaviour
         totalHorizontalWidth = cellWidth * count;
         curCenterItem = listEnhanceItems[startCenterIndex];
         curHorizontalValue = 0.5f - curCenterItem.CenterOffSet;
+        curHorizontalValueConst = curHorizontalValue;
         LerpTweenToTarget(0f, curHorizontalValue, false);
 
         //修正張數不同的情況造成的錯位 (localPosition)
@@ -217,6 +219,8 @@ public class EnhanceScrollView : MonoBehaviour
             canChangeItem = true;
             enableLerpTween = false;
             OnTweenOver();
+            //找出中心物件判斷頁數
+            FindIndex(curCenterItem);
         }
     }
 
@@ -225,7 +229,12 @@ public class EnhanceScrollView : MonoBehaviour
         if (preCenterItem != null)
             preCenterItem.SetSelectState(false);
         if (curCenterItem != null)
-            curCenterItem.SetSelectState(true);
+        {
+            if (!onDrag)
+                curCenterItem.SetSelectState(true);
+            else
+                curCenterItem.SetSelectState(false);
+        }
     }
 
     // Get the evaluate value to set item's scale
@@ -264,7 +273,13 @@ public class EnhanceScrollView : MonoBehaviour
             return;
 
         if (curCenterItem == selectItem)
+        {
+            PDFViewCanvas.SetActive(true);
+            RawImage curImage = curCenterItem.GetComponent<RawImage>();
+            RawImage image = PDFViewCanvas.GetComponentInChildren<RawImage>();
+            image.texture = curImage.texture;
             return;
+        }
 
         canChangeItem = false;
         preCenterItem = curCenterItem;
@@ -289,8 +304,6 @@ public class EnhanceScrollView : MonoBehaviour
         }
         float originValue = curHorizontalValue;
         LerpTweenToTarget(originValue, curHorizontalValue + dvalue, true);
-
-        FindIndex(selectItem);
     }
 
     // Click the right button to select the next item.
@@ -324,6 +337,14 @@ public class EnhanceScrollView : MonoBehaviour
         {
             curHorizontalValue += delta.x * factor;
             LerpTweenToTarget(0.0f, curHorizontalValue, false);
+
+            //Drag時判斷頁數
+            int pageOffset = Mathf.RoundToInt((curHorizontalValueConst - curHorizontalValue) / dFactor) % openPDF.pageCount;
+            openPDF.nowPage = originPage + pageOffset;
+            if (openPDF.nowPage <= 0)
+                openPDF.nowPage += openPDF.pageCount;
+            if (openPDF.nowPage > openPDF.pageCount)
+                openPDF.nowPage -= openPDF.pageCount;
         }
     }
 
@@ -352,7 +373,21 @@ public class EnhanceScrollView : MonoBehaviour
         canChangeItem = false;
     }
 
-    #region Custom Method
+    #region Custom
+
+    //拿來跟curHorizontalValue做比較
+    float curHorizontalValueConst;
+    //onDrag時紀錄原始nowPage
+    int originPage;
+    bool onDrag = false;
+    public GameObject PDFViewCanvas;
+
+    public void OnDragEnhanceViewBegin()
+    {
+        curCenterItem.ClearImage();
+        originPage = openPDF.nowPage;
+        onDrag = true;
+    }
 
     void FixPositionToCenter()
     {
@@ -364,21 +399,35 @@ public class EnhanceScrollView : MonoBehaviour
         for (int index = 0; index < listEnhanceItems.Count; index++)
         {
             if (item == listEnhanceItems[index])
-            {
-                break;
-            }
+                StartCoroutine(WaitForTween(index));
         }
     }
 
     IEnumerator WaitForTween(int index)
     {
-        yield return null;
-        /*OpenPDF openPDF = OpenPDF.instance;
-        float halfLimit = Mathf.Ceil(openPDF.pageLimit / 2) - 1;
-        if (index > halfLimit)
-            index -= (int)halfLimit;
-        openPDF.nowPage += index;
-        openPDF.ConvertToImage(openPDF.nowPage - 1);*/
+        yield return new WaitForSeconds(0.01f);
+        int halfLimit = Mathf.CeilToInt((float)openPDF.pageLimit / 2) - 1;
+
+        //Click時的計算方式
+        if (!onDrag)
+        {
+            if (index > halfLimit)
+            {
+                index = index - halfLimit * 2 - 1;
+                openPDF.nowPage += index;
+                if (openPDF.nowPage <= 0)
+                    openPDF.nowPage += openPDF.pageCount;
+            }
+            else
+            {
+                openPDF.nowPage += index;
+                if (openPDF.nowPage > openPDF.pageCount)
+                    openPDF.nowPage -= openPDF.pageCount;
+            }
+        }
+        openPDF.ConvertToImage(openPDF.nowPage - 1);
+        onDrag = false;
+        curCenterItem.SetSelectState(true);
     }
 
     #endregion

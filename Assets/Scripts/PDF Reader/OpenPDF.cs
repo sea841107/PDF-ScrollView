@@ -17,7 +17,18 @@ public class OpenPDF : MonoBehaviour
     public string pdfName;
     int convertPages;
 
-    public int nowPage;
+    public int _nowPage = 1;
+    public static Action<int> OnPageChanged;
+    public int nowPage
+    {
+        get { return _nowPage; }
+        set
+        {
+            _nowPage = value;
+            if (OnPageChanged != null)
+                OnPageChanged(value);
+        }
+    }
     public bool isOpen;
 
     [Tooltip("物件在Prefabs資料夾內，看你是用NGUI還UGUI")]
@@ -31,9 +42,13 @@ public class OpenPDF : MonoBehaviour
         set { _instance = value; }
     }
 
-    void Start()
+    void Awake()
     {
         instance = this;
+    }
+
+    void Start()
+    {
         scrollView = EnhanceScrollView.GetInstance;
     }
 
@@ -61,6 +76,7 @@ public class OpenPDF : MonoBehaviour
     IEnumerator WaitLoad(string fileName)
     {
         yield return null;
+        nowPage = 1;
         pdfPath = fileName;
         pdfName = Path.GetFileNameWithoutExtension(fileName);
         ConvertToImage();
