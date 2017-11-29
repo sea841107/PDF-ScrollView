@@ -281,6 +281,8 @@ public class EnhanceScrollView : MonoBehaviour
             return;
         }
 
+        //Click時清除所有圖片
+        ClearImage();
         canChangeItem = false;
         preCenterItem = curCenterItem;
         curCenterItem = selectItem;
@@ -384,7 +386,8 @@ public class EnhanceScrollView : MonoBehaviour
 
     public void OnDragEnhanceViewBegin()
     {
-        curCenterItem.ClearImage();
+        //Drag時清除所有圖片
+        ClearImage();
         originPage = openPDF.nowPage;
         onDrag = true;
     }
@@ -403,17 +406,24 @@ public class EnhanceScrollView : MonoBehaviour
         }
     }
 
+    void ClearImage()
+    {
+        for (int index = 0; index < listEnhanceItems.Count; index++)
+        {
+            listEnhanceItems[index].ClearSelect();
+        }
+    }
+
     IEnumerator WaitForTween(int index)
     {
         yield return new WaitForSeconds(0.01f);
-        int halfLimit = Mathf.CeilToInt((float)openPDF.pageLimit / 2) - 1;
 
         //Click時的計算方式
         if (!onDrag)
         {
-            if (index > halfLimit)
+            if (index > (openPDF.halfLimit - 1))
             {
-                index = index - halfLimit * 2 - 1;
+                index = index - (openPDF.halfLimit - 1) * 2 - 1;
                 openPDF.nowPage += index;
                 if (openPDF.nowPage <= 0)
                     openPDF.nowPage += openPDF.pageCount;
@@ -425,7 +435,7 @@ public class EnhanceScrollView : MonoBehaviour
                     openPDF.nowPage -= openPDF.pageCount;
             }
         }
-        openPDF.ConvertToImage(openPDF.nowPage - 1);
+        openPDF.ConvertToImageRuntime();
         onDrag = false;
         curCenterItem.SetSelectState(true);
     }

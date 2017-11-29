@@ -11,14 +11,19 @@ public class OpenPDF : MonoBehaviour
 {
     [Range(5,10)]
     [Tooltip("限制頁數數量，取決於你panel的寬度")]
-    public int pageLimit = 7;
+    int pageLimit = 7;  //暫時不開放修改(程式碼臭)
+    int _halfLimit;
+    public int halfLimit
+    {
+        get { return _halfLimit; }
+        set { _halfLimit = value; }
+    }
     public int pageCount;
     public string pdfPath;
     public string pdfName;
-    int convertPages;
 
-    public int _nowPage = 1;
     public static Action<int> OnPageChanged;
+    int _nowPage = 1;
     public int nowPage
     {
         get { return _nowPage; }
@@ -79,10 +84,10 @@ public class OpenPDF : MonoBehaviour
         nowPage = 1;
         pdfPath = fileName;
         pdfName = Path.GetFileNameWithoutExtension(fileName);
-        ConvertToImage();
+        ConvertToImageBegin();
     }
 
-    public void ConvertToImage(int initialIndex = 0)
+    void ConvertToImageBegin()
     {
         if (isOpen)
             DisposePDF();
@@ -90,37 +95,170 @@ public class OpenPDF : MonoBehaviour
         using (var document = PdfDocument.Load(pdfPath))
         {
             pageCount = document.PageCount;
-            convertPages = pageCount;
-            if (pageCount > pageLimit)
-                convertPages = pageLimit;
-            InitImage(document, convertPages, initialIndex);
+            if (pageCount < pageLimit)
+                InitImageEven(document, pageCount);
+            else
+            {
+                halfLimit = Mathf.CeilToInt((float)pageLimit / 2);
+                //右半邊圖片
+                InitImageEven(document, halfLimit);
+                //左半邊圖片
+                InitImageUnEven(document, pageLimit - halfLimit);
+            }
             scrollView.Init();
             isOpen = true;
         }
     }
 
-    void InitImage(PdfDocument doc, int pages, int initialIndex)
+    public void ConvertToImageRuntime()
     {
-        var image = doc.Render(initialIndex, 300, 300, true);
-        image.Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
-        InitItem(pages);
+        if (pageCount <= pageLimit)
+            return;
+
+        if (isOpen)
+            DisposePDF();
+
+        using (var document = PdfDocument.Load(pdfPath))
+        {
+            if (nowPage >= halfLimit)
+            {
+                if ((pageCount - nowPage) > 2)
+                {
+                    InitImageM_R(document, halfLimit, nowPage);
+                    InitImageL_M(document, pageLimit - halfLimit, nowPage);
+                }
+                else
+                {
+                    if ((pageCount - nowPage) == 0)
+                    {
+                        InitImageOnce(document, pageCount - 1);
+                        InitImageOnce(document, 0);
+                        InitImageOnce(document, 1);
+                        InitImageOnce(document, 2);
+                        InitImageOnce(document, nowPage - halfLimit);
+                        InitImageOnce(document, nowPage - halfLimit + 1);
+                        InitImageOnce(document, nowPage - halfLimit + 2);
+                    }
+                    else if ((pageCount - nowPage) == 1)
+                    {
+                        InitImageOnce(document, pageCount - 2);
+                        InitImageOnce(document, pageCount - 1);
+                        InitImageOnce(document, 0);
+                        InitImageOnce(document, 1);
+                        InitImageOnce(document, nowPage - halfLimit);
+                        InitImageOnce(document, nowPage - halfLimit + 1);
+                        InitImageOnce(document, nowPage - halfLimit + 2);
+                    }
+                    else if ((pageCount - nowPage) == 2)
+                    {
+                        InitImageOnce(document, pageCount - 3);
+                        InitImageOnce(document, pageCount - 2);
+                        InitImageOnce(document, pageCount - 1);
+                        InitImageOnce(document, 0);
+                        InitImageOnce(document, nowPage - halfLimit);
+                        InitImageOnce(document, nowPage - halfLimit + 1);
+                        InitImageOnce(document, nowPage - halfLimit + 2);
+                    }
+                }
+            }
+            else
+            {
+                if ((halfLimit - nowPage == 1))
+                {
+                    InitImageOnce(document, nowPage - 1);
+                    InitImageOnce(document, nowPage);
+                    InitImageOnce(document, nowPage + 1);
+                    InitImageOnce(document, nowPage + 2);
+                    InitImageOnce(document, pageCount - 1);
+                    InitImageOnce(document, 0);
+                    InitImageOnce(document, 1);
+                }
+                else if ((halfLimit - nowPage == 2))
+                {
+                    InitImageOnce(document, nowPage - 1);
+                    InitImageOnce(document, nowPage);
+                    InitImageOnce(document, nowPage + 1);
+                    InitImageOnce(document, nowPage + 2);
+                    InitImageOnce(document, pageCount - 2);
+                    InitImageOnce(document, pageCount - 1);
+                    InitImageOnce(document, 0);
+                }
+                else if ((halfLimit - nowPage == 3))
+                {
+                    InitImageOnce(document, nowPage - 1);
+                    InitImageOnce(document, nowPage);
+                    InitImageOnce(document, nowPage + 1);
+                    InitImageOnce(document, nowPage + 2);
+                    InitImageOnce(document, pageCount - 3);
+                    InitImageOnce(document, pageCount - 2);
+                    InitImageOnce(document, pageCount - 1);
+                }
+            }
+        }
+        scrollView.Init();
     }
 
-    void InitItem(int counts)
+    public void InitImageOnce(PdfDocument doc, int index)
     {
-        for (int index = 0; index < counts; index++)
+        var image = doc.Render(index, 300, 300, true);
+        image.Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+        InitItem();
+    }
+
+    void InitImageEven(PdfDocument doc, int page)
+    {
+        for (int index = 0; index < page; index++)
         {
-            EnhanceItem item = Instantiate(itemPrefab, Vector3.zero, Quaternion.identity, scrollView.transform);
-            scrollView.listEnhanceItems.Add(item);
+            var image = doc.Render(index, 300, 300, true);
+            image.Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+            InitItem();
         }
+    }
+
+    void InitImageUnEven(PdfDocument doc, int page)
+    {
+        for (int index = page; index > 0; index--)
+        {
+            var image = doc.Render(pageCount - index, 300, 300, true);
+            image.Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+            InitItem();
+        }
+    }
+
+    //Middle to Right
+    void InitImageM_R(PdfDocument doc, int page, int center)
+    {
+        for (int index = 0; index < page; index++)
+        {
+            var image = doc.Render(center + index - 1, 300, 300, true);
+            image.Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+            InitItem();
+        }
+    }
+
+    //Left to Middle
+    void InitImageL_M(PdfDocument doc, int page, int center)
+    {
+        for (int index = page; index > 0; index--)
+        {
+            var image = doc.Render(center - index - 1, 300, 300, true);
+            image.Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+            InitItem();
+        }
+    }
+
+    void InitItem()
+    {
+        EnhanceItem item = Instantiate(itemPrefab, Vector3.zero, Quaternion.identity, scrollView.transform);
+        scrollView.listEnhanceItems.Add(item);
         if (scrollView.inputType == EnhanceScrollView.InputSystemType.NGUIAndWorldInput)
         {
-            UITexture itemUI = scrollView.listEnhanceItems[0].GetComponent<UITexture>();
+            UITexture itemUI = item.GetComponent<UITexture>();
             itemUI.mainTexture = LoadPNG(Application.dataPath + "\\temp.png");
         }
         else
         {
-            RawImage itemUI = scrollView.listEnhanceItems[0].GetComponent<RawImage>();
+            RawImage itemUI = item.GetComponent<RawImage>();
             itemUI.texture = LoadPNG(Application.dataPath + "\\temp.png");
         }
     }

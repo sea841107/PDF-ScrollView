@@ -37,7 +37,7 @@ public class MyUGUIEnhanceItem : EnhanceItem
         rawImage.color = isCenter ? Color.white : colorGray;
     }
 
-    public override void ClearImage()
+    public override void ClearSelect()
     {
         rawImage = GetComponent<RawImage>();
         rawImage.texture = null;

@@ -29,9 +29,9 @@ public class PageManager : MonoBehaviour
         int index = Convert.ToInt32(input.text);
         if (openPDF.isOpen && index <= openPDF.pageCount && index > 0)
         {
-            openPDF.ConvertToImage(index - 1);
             openPDF.nowPage = index;
             page.text = "Page." + openPDF.nowPage.ToString();
+            openPDF.ConvertToImageRuntime();
         }
     }
 }

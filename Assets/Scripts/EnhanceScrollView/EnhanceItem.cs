@@ -88,7 +88,7 @@ public class EnhanceItem : MonoBehaviour
     {
     }
 
-    public virtual void ClearImage()
+    public virtual void ClearSelect()
     {
     }
 }
