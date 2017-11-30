@@ -6,7 +6,7 @@ public class PageManager : MonoBehaviour
 {
     public Text page;
     public InputField input;
-    public OpenPDF openPDF;
+    OpenPDF openPDF;
 
     void Start()
     {

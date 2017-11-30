@@ -94,8 +94,6 @@ public class EnhanceScrollView : MonoBehaviour
         get { return instance; }
     }
 
-    public OpenPDF openPDF;
-
     void Awake()
     {
         instance = this;
@@ -267,6 +265,10 @@ public class EnhanceScrollView : MonoBehaviour
             listSortedItems[i].RealIndex = i;
     }
 
+    /// <summary>
+    /// Click的切換方法。
+    /// </summary>
+    /// <param name="selectItem"></param>
     public void SetHorizontalTargetItemIndex(EnhanceItem selectItem)
     {
         if (!canChangeItem)
@@ -274,15 +276,15 @@ public class EnhanceScrollView : MonoBehaviour
 
         if (curCenterItem == selectItem)
         {
-            PDFViewCanvas.SetActive(true);
-            RawImage curImage = curCenterItem.GetComponent<RawImage>();
-            RawImage image = PDFViewCanvas.GetComponentInChildren<RawImage>();
-            image.texture = curImage.texture;
+            //Click中央頁會展開
+            if (!onDrag)
+                PageView();
             return;
         }
 
         //Click時清除所有圖片
-        ClearImage();
+        if(openPDF.ExceedLimit)
+            ClearImage();
         canChangeItem = false;
         preCenterItem = curCenterItem;
         curCenterItem = selectItem;
@@ -306,6 +308,7 @@ public class EnhanceScrollView : MonoBehaviour
         }
         float originValue = curHorizontalValue;
         LerpTweenToTarget(originValue, curHorizontalValue + dvalue, true);
+        curHorizontalValueConst = curHorizontalValue;
     }
 
     // Click the right button to select the next item.
@@ -381,13 +384,16 @@ public class EnhanceScrollView : MonoBehaviour
     float curHorizontalValueConst;
     //onDrag時紀錄原始nowPage
     int originPage;
-    bool onDrag = false;
+    [Header("Custom")]
+    public bool onDrag;
+    OpenPDF openPDF;
     public GameObject PDFViewCanvas;
 
     public void OnDragEnhanceViewBegin()
     {
         //Drag時清除所有圖片
-        ClearImage();
+        if(openPDF.ExceedLimit)
+            ClearImage();
         originPage = openPDF.nowPage;
         onDrag = true;
     }
@@ -414,6 +420,14 @@ public class EnhanceScrollView : MonoBehaviour
         }
     }
 
+    void PageView()
+    {
+        PDFViewCanvas.SetActive(true);
+        RawImage curImage = curCenterItem.GetComponent<RawImage>();
+        RawImage image = PDFViewCanvas.GetComponentInChildren<RawImage>();
+        image.texture = curImage.texture;
+    }
+
     IEnumerator WaitForTween(int index)
     {
         yield return new WaitForSeconds(0.01f);
@@ -421,19 +435,24 @@ public class EnhanceScrollView : MonoBehaviour
         //Click時的計算方式
         if (!onDrag)
         {
-            if (index > (openPDF.halfLimit - 1))
+            if (openPDF.ExceedLimit)
             {
-                index = index - (openPDF.halfLimit - 1) * 2 - 1;
-                openPDF.nowPage += index;
-                if (openPDF.nowPage <= 0)
-                    openPDF.nowPage += openPDF.pageCount;
+                if (index > (openPDF.halfLimit - 1))
+                {
+                    index = index - (openPDF.halfLimit - 1) * 2 - 1;
+                    openPDF.nowPage += index;
+                    if (openPDF.nowPage <= 0)
+                        openPDF.nowPage += openPDF.pageCount;
+                }
+                else
+                {
+                    openPDF.nowPage += index;
+                    if (openPDF.nowPage > openPDF.pageCount)
+                        openPDF.nowPage -= openPDF.pageCount;
+                }
             }
             else
-            {
-                openPDF.nowPage += index;
-                if (openPDF.nowPage > openPDF.pageCount)
-                    openPDF.nowPage -= openPDF.pageCount;
-            }
+                openPDF.nowPage = index + 1;
         }
         openPDF.ConvertToImageRuntime();
         onDrag = false;
