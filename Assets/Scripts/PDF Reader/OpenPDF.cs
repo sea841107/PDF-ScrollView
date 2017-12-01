@@ -9,9 +9,9 @@ using System.Runtime.InteropServices;
 
 public class OpenPDF : MonoBehaviour
 {
-    [Range(5,10)]
-    [Tooltip("限制頁數數量，取決於你panel的寬度")]
-    int pageLimit = 7;  //暫時不開放修改(程式碼臭)
+    [Range(5,20)]
+    [Tooltip("限制頁數數量，取決於Panel、CellWidth、Prefab三者的大小")]
+    public int pageLimit = 7;
     int _halfLimit;
     public int halfLimit
     {
@@ -128,43 +128,43 @@ public class OpenPDF : MonoBehaviour
 
         if (nowPage >= halfLimit)
         {
-            if ((pageCount - nowPage) == 0)
+            for (int i = 1; i <= halfLimit; i++)
             {
-                InitImageEven(halfLimit, pageCount - 1);
-                InitImageEven(pageLimit - halfLimit, nowPage - halfLimit);
-            }
-            else if ((pageCount - nowPage) == 1)
-            {
-                InitImageEven(halfLimit, pageCount - 2);
-                InitImageEven(pageLimit - halfLimit, nowPage - halfLimit);
-            }
-            else if ((pageCount - nowPage) == 2)
-            {
-                InitImageEven(halfLimit, pageCount - 3);
-                InitImageEven(pageLimit - halfLimit, nowPage - halfLimit);
-            }
-            else if ((pageCount - nowPage) >= 3)
-            {
-                InitImageEven(halfLimit, nowPage - 1);
-                InitImageUnEven(pageLimit - halfLimit, nowPage - 1);
+                if (i == 1)
+                {
+                    if ((pageCount - nowPage) >= (halfLimit - i))
+                    {
+                        InitImageEven(halfLimit, nowPage - 1);
+                        InitImageUnEven(pageLimit - halfLimit, nowPage - 1);
+                        break;
+                    }
+                }
+                else if ((pageCount - nowPage) == (halfLimit - i))
+                {
+                    InitImageEven(halfLimit, pageCount - (halfLimit - i + 1));
+                    InitImageEven(pageLimit - halfLimit, nowPage - halfLimit);
+                    break;
+                }
+                else if (i == halfLimit)
+                {
+                    if ((pageCount - nowPage) == (halfLimit - i))
+                    {
+                        InitImageEven(halfLimit, pageCount - 1);
+                        InitImageEven(pageLimit - halfLimit, nowPage - halfLimit);
+                    }
+                }
             }
         }
         else
         {
-            if ((halfLimit - nowPage == 1))
+            for (int i = 1; i <= (pageLimit - halfLimit); i++)
             {
-                InitImageEven(halfLimit, nowPage - 1);
-                InitImageEven(pageLimit - halfLimit, pageCount - 1);
-            }
-            else if ((halfLimit - nowPage == 2))
-            {
-                InitImageEven(halfLimit, nowPage - 1);
-                InitImageEven(pageLimit - halfLimit, pageCount - 2);
-            }
-            else if ((halfLimit - nowPage == 3))
-            {
-                InitImageEven(halfLimit, nowPage - 1);
-                InitImageEven(pageLimit - halfLimit, pageCount - 3);
+                if ((halfLimit - nowPage == i))
+                {
+                    InitImageEven(halfLimit, nowPage - 1);
+                    InitImageEven(pageLimit - halfLimit, pageCount - i);
+                    break;
+                }
             }
         }
         scrollView.Init();
@@ -178,12 +178,6 @@ public class OpenPDF : MonoBehaviour
             var image = doc.Render(index, 300, 300, true);
             imageList.Add(image);
         }
-    }
-
-    void InitImageOnce(int index)
-    {
-        imageList[index].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
-        InitItem();
     }
 
     void InitImageEven(int page, int initialIndex = 0)
@@ -202,7 +196,10 @@ public class OpenPDF : MonoBehaviour
     {
         for (int index = page; index > 0; index--)
         {
-            imageList[lastIndex - index].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+            int finalIndex = lastIndex - index;
+            if (finalIndex < 0)
+                finalIndex += pageCount;
+            imageList[finalIndex].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
             InitItem();
         }
     }

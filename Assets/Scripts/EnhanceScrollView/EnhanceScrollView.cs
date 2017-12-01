@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -285,6 +285,7 @@ public class EnhanceScrollView : MonoBehaviour
         //Click時清除所有圖片
         if(openPDF.ExceedLimit)
             ClearImage();
+
         canChangeItem = false;
         preCenterItem = curCenterItem;
         curCenterItem = selectItem;
@@ -375,19 +376,20 @@ public class EnhanceScrollView : MonoBehaviour
         preCenterItem = curCenterItem;
         curCenterItem = listEnhanceItems[closestIndex];
         LerpTweenToTarget(originHorizontalValue, target, true);
+        curHorizontalValueConst = curHorizontalValue;
         canChangeItem = false;
     }
 
     #region Custom
 
+    [Header("Custom")]
+    public bool onDrag;
     //拿來跟curHorizontalValue做比較
     float curHorizontalValueConst;
     //onDrag時紀錄原始nowPage
     int originPage;
-    [Header("Custom")]
-    public bool onDrag;
     OpenPDF openPDF;
-    public GameObject PDFViewCanvas;
+    public static Action<EnhanceItem> OnPageViewed;
 
     public void OnDragEnhanceViewBegin()
     {
@@ -422,17 +424,15 @@ public class EnhanceScrollView : MonoBehaviour
 
     void PageView()
     {
-        PDFViewCanvas.SetActive(true);
-        RawImage curImage = curCenterItem.GetComponent<RawImage>();
-        RawImage image = PDFViewCanvas.GetComponentInChildren<RawImage>();
-        image.texture = curImage.texture;
+        if (OnPageViewed != null)
+            OnPageViewed(curCenterItem);
     }
 
     IEnumerator WaitForTween(int index)
     {
         yield return new WaitForSeconds(0.01f);
 
-        //Click時的計算方式
+        //Click時的第幾頁計算方式
         if (!onDrag)
         {
             if (openPDF.ExceedLimit)
