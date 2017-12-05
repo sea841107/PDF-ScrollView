@@ -31,7 +31,7 @@ public class PageManager : MonoBehaviour
         {
             openPDF.nowPage = index;
             page.text = "Page." + openPDF.nowPage.ToString();
-            openPDF.ConvertToImageRuntime();
+            openPDF.ConvertToImageDragOrInput();
         }
     }
 }

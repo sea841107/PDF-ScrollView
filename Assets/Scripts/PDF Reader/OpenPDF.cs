@@ -11,18 +11,16 @@ public class OpenPDF : MonoBehaviour
 {
     [Range(5,20)]
     [Tooltip("限制頁數數量，取決於Panel、CellWidth、Prefab三者的大小")]
-    public int pageLimit = 7;
-    int _halfLimit;
-    public int halfLimit
-    {
-        get { return  _halfLimit; }
-        set { _halfLimit = value; }
-    }
+    public int limitPages = 7;
+    int halfLimitPages;
     public int pageCount;
     public string pdfPath;
     public string pdfName;
     public bool isOpen;
-    public bool ExceedLimit { get { return pageCount > pageLimit; } }
+
+    public bool ExceedLimit { get { return pageCount > limitPages; } }
+    public int leftPages { get { return (limitPages - halfLimitPages); } }
+    public int rightPages { get { return halfLimitPages; } }
 
     public static Action<int> OnPageChanged;
     int _nowPage = 1;
@@ -103,71 +101,84 @@ public class OpenPDF : MonoBehaviour
             pageCount = document.PageCount;
             SaveImageList(document, pageCount);
 
-            if (pageCount < pageLimit)
+            if (pageCount < limitPages)
                 InitImageEven(pageCount);
             else
             {
-                halfLimit = Mathf.CeilToInt((float)pageLimit / 2);
+                halfLimitPages = Mathf.CeilToInt((float)limitPages / 2);
                 //右半邊圖片
-                InitImageEven(halfLimit);
+                InitImageEven(rightPages);
                 //左半邊圖片
-                InitImageUnEven(pageLimit - halfLimit, pageCount);
+                InitImageUnEven(leftPages, pageCount);
             }
             scrollView.Init();
             isOpen = true;
         }
     }
 
-    public void ConvertToImageRuntime()
+    public void ConvertToImageClick(int index)
     {
-        if (pageCount <= pageLimit)
+        if (pageCount <= limitPages)
             return;
 
-        if (isOpen)
-            DisposePDF();
+        int imageIndex;
+        if (index < rightPages)
+            imageIndex = nowPage + (index - 1);
+        else
+            imageIndex = nowPage - (limitPages - (index - 1));
 
-        if (nowPage >= halfLimit)
+        if (imageIndex >= pageCount)
+            imageIndex -= pageCount;
+        else if (imageIndex < 0)
+            imageIndex += pageCount;
+
+        imageList[imageIndex].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+        ChangePNG(scrollView.listEnhanceItems[index]);
+    }
+
+    public void ConvertToImageDragOrInput()
+    {
+        if (pageCount <= limitPages)
+            return;
+
+        if (nowPage >= rightPages)
         {
-            for (int i = 1; i <= halfLimit; i++)
+            for (int i = 1; i <= rightPages; i++)
             {
                 if (i == 1)
                 {
-                    if ((pageCount - nowPage) >= (halfLimit - i))
+                    if ((pageCount - nowPage) >= (rightPages - i))
                     {
-                        InitImageEven(halfLimit, nowPage - 1);
-                        InitImageUnEven(pageLimit - halfLimit, nowPage - 1);
+                        InitImageEven(rightPages, nowPage - 1, true);
+                        InitImageUnEven(leftPages, nowPage - 1, true);
                         break;
                     }
                 }
-                else if ((pageCount - nowPage) == (halfLimit - i))
+                else if ((pageCount - nowPage) == (rightPages - i))
                 {
-                    InitImageEven(halfLimit, pageCount - (halfLimit - i + 1));
-                    InitImageEven(pageLimit - halfLimit, nowPage - halfLimit);
+                    InitImageEven(rightPages, pageCount - (rightPages - i + 1), true);
+                    InitImageEven(leftPages, rightPages, true, false);
                     break;
                 }
-                else if (i == halfLimit)
+                else if (i == rightPages)
                 {
-                    if ((pageCount - nowPage) == (halfLimit - i))
-                    {
-                        InitImageEven(halfLimit, pageCount - 1);
-                        InitImageEven(pageLimit - halfLimit, nowPage - halfLimit);
-                    }
+                    InitImageEven(rightPages, pageCount - 1, true);
+                    InitImageEven(leftPages, rightPages, true, false);
                 }
             }
         }
         else
         {
-            for (int i = 1; i <= (pageLimit - halfLimit); i++)
+            for (int i = 1; i <= leftPages; i++)
             {
-                if ((halfLimit - nowPage == i))
+                if ((rightPages - nowPage == i))
                 {
-                    InitImageEven(halfLimit, nowPage - 1);
-                    InitImageEven(pageLimit - halfLimit, pageCount - i);
+                    InitImageEven(rightPages, nowPage - 1, true);
+                    InitImageEven(leftPages, pageCount - leftPages + nowPage - 1, true, false);
                     break;
                 }
             }
         }
-        scrollView.Init();
     }
 
     void SaveImageList(PdfDocument doc, int page)
@@ -180,27 +191,39 @@ public class OpenPDF : MonoBehaviour
         }
     }
 
-    void InitImageEven(int page, int initialIndex = 0)
+    void InitImageEven(int page, int initialIndex = 0, bool isRuntime = false, bool isRight = true)
     {
-        for (int index = 0; index < page; index++)
+        int listIndex = isRight ? 0 : rightPages;
+
+        for (int i = 0; i < page; i++)
         {
-            int finalIndex = index + initialIndex;
-            if (finalIndex >= pageCount)
-                finalIndex -= pageCount;
-            imageList[finalIndex].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
-            InitItem();
+            int imageIndex = i + initialIndex;
+            if (imageIndex >= pageCount)
+                imageIndex -= pageCount;
+            imageList[imageIndex].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+
+            if (!isRuntime)
+                InitItem();
+            else
+                ChangePNG(scrollView.listEnhanceItems[listIndex++]);
         }
     }
 
-    void InitImageUnEven(int page, int lastIndex)
+    void InitImageUnEven(int page, int lastIndex, bool isRuntime = false)
     {
-        for (int index = page; index > 0; index--)
+        int listIndex = rightPages;
+
+        for (int i = page; i > 0; i--)
         {
-            int finalIndex = lastIndex - index;
-            if (finalIndex < 0)
-                finalIndex += pageCount;
-            imageList[finalIndex].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
-            InitItem();
+            int imageIndex = lastIndex - i;
+            if (imageIndex < 0)
+                imageIndex += pageCount;
+            imageList[imageIndex].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
+
+            if (!isRuntime)
+                InitItem();
+            else
+                ChangePNG(scrollView.listEnhanceItems[listIndex++]);
         }
     }
 
@@ -208,6 +231,11 @@ public class OpenPDF : MonoBehaviour
     {
         EnhanceItem item = Instantiate(itemPrefab, Vector3.zero, Quaternion.identity, scrollView.transform);
         scrollView.listEnhanceItems.Add(item);
+        ChangePNG(item);
+    }
+
+    void ChangePNG(EnhanceItem item)
+    {
         if (scrollView.inputType == EnhanceScrollView.InputSystemType.UGUIInput)
         {
             UnityEngine.UI.RawImage itemUI = item.GetComponent<UnityEngine.UI.RawImage>();

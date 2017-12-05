@@ -282,10 +282,6 @@ public class EnhanceScrollView : MonoBehaviour
             return;
         }
 
-        //Click時清除所有圖片
-        if(openPDF.ExceedLimit)
-            ClearImage();
-
         canChangeItem = false;
         preCenterItem = curCenterItem;
         curCenterItem = selectItem;
@@ -410,8 +406,27 @@ public class EnhanceScrollView : MonoBehaviour
         for (int index = 0; index < listEnhanceItems.Count; index++)
         {
             if (item == listEnhanceItems[index])
+            {
+                ReArray(index);
                 StartCoroutine(WaitForTween(index));
+            }
         }
+    }
+
+    void ReArray(int index)
+    {
+        List<EnhanceItem> tempList = new List<EnhanceItem>();
+
+        for (int i = 0; i < listEnhanceItems.Count; i++)
+        {
+            int newIndex = index + i;
+            if (newIndex >= listEnhanceItems.Count)
+                newIndex -= listEnhanceItems.Count;
+
+            EnhanceItem tempItem = listEnhanceItems[newIndex];
+            tempList.Add(tempItem);
+        }
+        listEnhanceItems = tempList;
     }
 
     void ClearImage()
@@ -432,31 +447,43 @@ public class EnhanceScrollView : MonoBehaviour
     {
         yield return new WaitForSeconds(0.01f);
 
-        //Click時的第幾頁計算方式
         if (!onDrag)
         {
-            if (openPDF.ExceedLimit)
+            int finalIndex;
+
+            if (index >= openPDF.rightPages)
             {
-                if (index > (openPDF.halfLimit - 1))
+                finalIndex = index - openPDF.limitPages;
+                openPDF.nowPage += finalIndex;
+                if (openPDF.nowPage <= 0)
+                    openPDF.nowPage += openPDF.pageCount;
+
+                for (int i = 0; i < (openPDF.limitPages - index); i++)
                 {
-                    index = index - (openPDF.halfLimit - 1) * 2 - 1;
-                    openPDF.nowPage += index;
-                    if (openPDF.nowPage <= 0)
-                        openPDF.nowPage += openPDF.pageCount;
-                }
-                else
-                {
-                    openPDF.nowPage += index;
-                    if (openPDF.nowPage > openPDF.pageCount)
-                        openPDF.nowPage -= openPDF.pageCount;
+                    openPDF.ConvertToImageClick(openPDF.rightPages + i);
                 }
             }
             else
-                openPDF.nowPage = index + 1;
+            {
+                finalIndex = index;
+                openPDF.nowPage += finalIndex;
+                if (openPDF.nowPage > openPDF.pageCount)
+                    openPDF.nowPage -= openPDF.pageCount;
+
+                for (int i = 0; i < index; i++)
+                {
+                    openPDF.ConvertToImageClick(openPDF.rightPages - index + i);
+                }
+            }
+
+            curCenterItem.SetSelectState(true);
         }
-        openPDF.ConvertToImageRuntime();
-        onDrag = false;
-        curCenterItem.SetSelectState(true);
+        else
+        {
+            openPDF.ConvertToImageDragOrInput();
+            onDrag = false;
+            curCenterItem.SetSelectState(true);
+        }
     }
 
     #endregion
