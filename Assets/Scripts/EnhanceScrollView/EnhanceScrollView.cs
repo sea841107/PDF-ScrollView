@@ -313,10 +313,10 @@ public class EnhanceScrollView : MonoBehaviour
     {
         if (!canChangeItem)
             return;
-        int targetIndex = curCenterItem.CurveOffSetIndex + 1;
-        if (targetIndex > listEnhanceItems.Count - 1)
-            targetIndex = 0;
-        SetHorizontalTargetItemIndex(listEnhanceItems[targetIndex]);
+        //int targetIndex = curCenterItem.CurveOffSetIndex + 1;
+        //if (targetIndex > listEnhanceItems.Count - 1)
+        //    targetIndex = 0;
+        SetHorizontalTargetItemIndex(listEnhanceItems[1]);
     }
 
     // Click the left button the select next next item.
@@ -324,10 +324,13 @@ public class EnhanceScrollView : MonoBehaviour
     {
         if (!canChangeItem)
             return;
-        int targetIndex = curCenterItem.CurveOffSetIndex - 1;
-        if (targetIndex < 0)
-            targetIndex = listEnhanceItems.Count - 1;
-        SetHorizontalTargetItemIndex(listEnhanceItems[targetIndex]);
+        //int targetIndex = curCenterItem.CurveOffSetIndex - 1;
+        //if (targetIndex < 0)
+        //    targetIndex = listEnhanceItems.Count - 1;
+        if(openPDF.ExceedLimit)
+            SetHorizontalTargetItemIndex(listEnhanceItems[openPDF.limitPages - 1]);
+        else
+            SetHorizontalTargetItemIndex(listEnhanceItems[openPDF.pageCount - 1]);
     }
 
     public float factor = 0.001f;
@@ -453,7 +456,10 @@ public class EnhanceScrollView : MonoBehaviour
 
             if (index >= openPDF.rightPages)
             {
-                finalIndex = index - openPDF.limitPages;
+                if (openPDF.ExceedLimit)
+                    finalIndex = index - openPDF.limitPages;
+                else
+                    finalIndex = index - openPDF.pageCount;
                 openPDF.nowPage += finalIndex;
                 if (openPDF.nowPage <= 0)
                     openPDF.nowPage += openPDF.pageCount;
