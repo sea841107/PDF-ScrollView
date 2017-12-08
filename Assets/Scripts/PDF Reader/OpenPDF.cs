@@ -12,15 +12,24 @@ public class OpenPDF : MonoBehaviour
     [Range(5,20)]
     [Tooltip("限制頁數數量，取決於Panel、CellWidth、Prefab三者的大小")]
     public int limitPages = 7;
-    int halfLimitPages;
+    int halfPages;
     public int pageCount;
     public string pdfPath;
     public string pdfName;
     public bool isOpen;
 
     public bool ExceedLimit { get { return pageCount > limitPages; } }
-    public int leftPages { get { return (limitPages - halfLimitPages); } }
-    public int rightPages { get { return halfLimitPages; } }
+    public int leftPages
+    {
+        get
+        {
+            if (ExceedLimit)
+                return (limitPages - halfPages);
+            else
+                return (pageCount - halfPages);
+        }
+    }
+    public int rightPages { get { return halfPages; } }
 
     public static Action<int> OnPageChanged;
     int _nowPage = 1;
@@ -102,10 +111,13 @@ public class OpenPDF : MonoBehaviour
             SaveImageList(document, pageCount);
 
             if (pageCount < limitPages)
+            {
+                halfPages = Mathf.CeilToInt((float)pageCount / 2);
                 InitImageEven(pageCount);
+            }
             else
             {
-                halfLimitPages = Mathf.CeilToInt((float)limitPages / 2);
+                halfPages = Mathf.CeilToInt((float)limitPages / 2);
                 //右半邊圖片
                 InitImageEven(rightPages);
                 //左半邊圖片
@@ -138,9 +150,6 @@ public class OpenPDF : MonoBehaviour
 
     public void ConvertToImageDragOrInput()
     {
-        if (pageCount <= limitPages)
-            return;
-
         if (nowPage >= rightPages)
         {
             for (int i = 1; i <= rightPages; i++)
@@ -194,12 +203,24 @@ public class OpenPDF : MonoBehaviour
     void InitImageEven(int page, int initialIndex = 0, bool isRuntime = false, bool isRight = true)
     {
         int listIndex = isRight ? 0 : rightPages;
+        int imageIndex;
 
         for (int i = 0; i < page; i++)
         {
-            int imageIndex = i + initialIndex;
-            if (imageIndex >= pageCount)
-                imageIndex -= pageCount;
+            if (isRight)
+            {
+                imageIndex = i + initialIndex;
+                if (imageIndex >= pageCount)
+                    imageIndex -= pageCount;
+            }
+            else
+            {
+                imageIndex = (nowPage - leftPages - 1) + i;
+                if (imageIndex >= pageCount)
+                    imageIndex -= pageCount;
+                if (imageIndex < 0)
+                    imageIndex += pageCount;
+            }
             imageList[imageIndex].Save(Application.dataPath + "\\temp.png", ImageFormat.Png);
 
             if (!isRuntime)
@@ -239,7 +260,7 @@ public class OpenPDF : MonoBehaviour
         if (scrollView.inputType == EnhanceScrollView.InputSystemType.UGUIInput)
         {
             UnityEngine.UI.RawImage itemUI = item.GetComponent<UnityEngine.UI.RawImage>();
-            itemUI.texture = LoadPNG(Application.dataPath + "\\temp.png");
+            itemUI.texture = LoadPNG(UnityEngine.Application.dataPath + "\\temp.png");
         }
         else
         {

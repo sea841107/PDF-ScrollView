@@ -39,7 +39,6 @@ public class MyUGUIEnhanceItem : EnhanceItem
 
     public override void ClearSelect()
     {
-        rawImage = GetComponent<RawImage>();
         rawImage.texture = null;
     }
 }

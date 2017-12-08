@@ -5,13 +5,13 @@ public class PageView : MonoBehaviour
 {
     public GameObject PDFViewCanvas;
     public GameObject choosePage;
-    Animator ani;
+    Animator anim;
     Vector3 localScale { get { return choosePage.transform.localScale; } }
     Vector3 position { get { return choosePage.transform.position; } }
 
     void Start()
     {
-        ani = choosePage.GetComponent<Animator>();
+        anim = choosePage.GetComponent<Animator>();
         EnhanceScrollView.OnPageViewed += OnView;
     }
 
@@ -23,7 +23,7 @@ public class PageView : MonoBehaviour
     void OnView(EnhanceItem item)
     {
         PDFViewCanvas.SetActive(true);
-        ani.enabled = true;
+        anim.enabled = true;
         RawImage itemImage = item.GetComponent<RawImage>();
         RawImage image = PDFViewCanvas.GetComponentInChildren<RawImage>();
         image.texture = itemImage.texture;
@@ -38,7 +38,7 @@ public class PageView : MonoBehaviour
 
     public void ZoomIn()
     {
-        choosePage.transform.localScale = new Vector3(choosePage.transform.localScale.x + 0.18f, choosePage.transform.localScale.y + 0.16f, choosePage.transform.localScale.z);
+        choosePage.transform.localScale = new Vector3(localScale.x + 0.18f, localScale.y + 0.16f, localScale.z);
     }
 
     public void ZoomOut()
